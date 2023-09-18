@@ -60,7 +60,7 @@ class GraphSage(tf.keras.Model):
         self.agg_ly1 = MeanAggregator(input_dim
                                       , internal_dim
                                       , name="agg_lv1"
-                                      , activ=False
+                                      , activ=True
                                       )
 
         self.agg_ly2 = MeanAggregator(internal_dim
@@ -70,31 +70,31 @@ class GraphSage(tf.keras.Model):
                                       )
 
         # MLP
-        # TODO：维度的修正，输出多少个维度？用几层网络。
-        self.dense_ly1 = tf.keras.layers.Dense(64, activation=tf.nn.relu, dtype='float64')
-        self.dense_ly2 = tf.keras.layers.Dense(32, activation=tf.nn.relu, dtype='float64')
-        self.dense_ly3 = tf.keras.layers.Dense(16, activation=tf.nn.relu, dtype='float64')
-        self.dense_ly4 = tf.keras.layers.Dense(8, activation=tf.nn.relu, dtype='float64')
-        # TODO： 是否用softmax 函数作为输出，因为是要映射到0~1之间？
-        self.dense_ly5 = tf.keras.layers.Dense(1, activation=tf.nn.softmax, dtype='float64')
+        # # TODO：维度的修正，输出多少个维度？用几层网络。
+        #
+        # self.dense_ly1 = tf.keras.layers.Dense(64, activation=tf.nn.relu, dtype='float64')(tf.keras.layers.Input(shape=(None,internal_dim)))
+        # self.dense_ly2 = tf.keras.layers.Dense(32, activation=tf.nn.relu, dtype='float64')(tf.keras.layers.Input(shape=(None,64)))
+        # self.dense_ly3 = tf.keras.layers.Dense(16, activation=tf.nn.relu, dtype='float64')(tf.keras.layers.Input(shape=(None,32)))
+        # self.dense_ly4 = tf.keras.layers.Dense(8, activation=tf.nn.relu, dtype='float64')(tf.keras.layers.Input(shape=(None,16)))
+        # # TODO： 是否用softmax 函数作为输出，因为是要映射到0~1之间？
+        # self.dense_ly5 = tf.keras.layers.Dense(1, activation=tf.nn.softmax, dtype='float64')(tf.keras.layers.Input(shape=(None,8)))
 
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-        self._loss = tf.keras.losses.compute_uloss
 
     @tf.function(
         input_signature=[
-            tf.TensorSpec(shape=(None,), dtype=tf.int32),
-            tf.TensorSpec(shape=(None,), dtype=tf.int64),
-            tf.TensorSpec(shape=(None,), dtype=tf.int64),
-            tf.TensorSpec(shape=(None,), dtype=tf.int64),
-            tf.TensorSpec(shape=(None,), dtype=tf.int64),
+            tf.TensorSpec(shape=None, dtype=tf.float32),
+            tf.TensorSpec(shape=None, dtype=tf.int64),
+            tf.TensorSpec(shape=None, dtype=tf.int64),
+            tf.TensorSpec(shape=None, dtype=tf.int64),
+            tf.TensorSpec(shape=None, dtype=tf.int64),
             tf.TensorSpec(shape=(None, None), dtype=tf.float32),
             tf.TensorSpec(shape=(None, None), dtype=tf.float32),
         ])
     def call(self, src_nodes, dstsrc2src_1, dstsrc2src_2, dstsrc2dst_1, dstsrc2dst_2, dif_mat_1, dif_mat_2):
         """
         前向传播
-        :param src_nodes:
+        :param src_nodes: 这里省去了 tf.gather(self.features, nodes)这一步，直接将src结点的特征传进来即可。
         :param dstsrc2src_1:
         :param dstsrc2src_2:
         :param dstsrc2dst_1:
@@ -105,27 +105,25 @@ class GraphSage(tf.keras.Model):
         """
         # GraphSage
         # 先聚合第二层，再聚合第一层
-        x = self.input_layer.call(tf.squeeze(src_nodes))
-        x = self.agg_ly1.call(x, dstsrc2src_2, dstsrc2dst_2, dif_mat_2)
+        x = self.agg_ly1.call(src_nodes, dstsrc2src_2, dstsrc2dst_2, dif_mat_2)
         x = self.agg_ly2.call(x, dstsrc2src_1, dstsrc2dst_1, dif_mat_1)
 
-        # MLP
-        embeddingABN = tf.math.l2_normalize(x, 1)
-        x = self.dense_ly1.call(embeddingABN)
-        x = self.dense_ly2.call(x)
-        x = self.dense_ly3.call(x)
-        x = self.dense_ly4.call(x)
-        x = self.dense_ly5.call(x)
-
+        # # MLP
+        # embeddingABN = tf.math.l2_normalize(x, 1)
+        # x = self.dense_ly1(embeddingABN)
+        # x = self.dense_ly2(x)
+        # x = self.dense_ly3(x)
+        # x = self.dense_ly4(x)
+        # x = self.dense_ly5(x)
         return x
 
     @tf.function(
         input_signature=[
-            tf.TensorSpec(shape=(None,), dtype=tf.int32),
-            tf.TensorSpec(shape=(None,), dtype=tf.int64),
-            tf.TensorSpec(shape=(None,), dtype=tf.int64),
-            tf.TensorSpec(shape=(None,), dtype=tf.int64),
-            tf.TensorSpec(shape=(None,), dtype=tf.int64),
+            tf.TensorSpec(shape=None, dtype=tf.float32),
+            tf.TensorSpec(shape=None, dtype=tf.int64),
+            tf.TensorSpec(shape=None, dtype=tf.int64),
+            tf.TensorSpec(shape=None, dtype=tf.int64),
+            tf.TensorSpec(shape=None, dtype=tf.int64),
             tf.TensorSpec(shape=(None, None), dtype=tf.float32),
             tf.TensorSpec(shape=(None, None), dtype=tf.float32),
             tf.TensorSpec(shape=(None, None), dtype=tf.float32),
@@ -135,7 +133,7 @@ class GraphSage(tf.keras.Model):
               piece_count):
         """
         训练过程，这里要限定好batch_size，控制好维度
-        :param src_nodes:
+        :param src_nodes: 这里省去了 tf.gather(self.features, nodes)这一步，直接将src结点的特征传进来即可。
         :param dstsrc2src_1:
         :param dstsrc2src_2:
         :param dstsrc2dst_1:
@@ -149,8 +147,7 @@ class GraphSage(tf.keras.Model):
         with tf.GradientTape() as tape:
             predict_value = self.call(src_nodes, dstsrc2src_1, dstsrc2src_2, dstsrc2dst_1, dstsrc2dst_2, dif_mat_1,
                                       dif_mat_2)
-            self._loss = self.compute_uloss(predict_value, real_value, piece_count)
-            loss = self._loss
+            loss = self.compute_uloss(predict_value, real_value, piece_count)
         grads = tape.gradient(loss, self.trainable_weights)
         self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
         return loss
@@ -163,8 +160,7 @@ class GraphSage(tf.keras.Model):
         :param piece_count:
         :return:
         """
-        loss = 0
-        return loss
+        return tf.constant(2.111381)
 
     # def compute_uloss(self, embeddingA, embeddingB, embeddingN, neg_weight):
     #
@@ -185,3 +181,27 @@ class GraphSage(tf.keras.Model):
     #
     #     # per batch loss: GraphSAGE:models.py line 378
     #     return tf.divide(batch_loss, embeddingA.shape[0])
+
+
+if __name__ == "__main__":
+    # 暂时先拟定IDC 是3维，然后location  2| 2 | 3 | = 2*2*3 共 12维，然后IP 是4维
+
+    idc_dim = 3
+    location_dim = 2 * 2 * 3
+    ip_dim = 4
+    input_dim = idc_dim + location_dim + ip_dim
+
+    INTERNAL_DIM = 128
+    SAMPLE_SIZES = [5, 5]
+    LEARNING_RATE = 0.001
+
+    graphsage = GraphSage(input_dim, INTERNAL_DIM, LEARNING_RATE)
+
+    tf.saved_model.save(
+        graphsage,
+        "keras/graphsage",
+        signatures={
+            "call": graphsage.call,
+            "train": graphsage.train,
+        },
+    )
