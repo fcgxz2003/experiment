@@ -196,7 +196,8 @@ if __name__ == "__main__":
     LEARNING_RATE = 0.001
 
     graphsage = GraphSage(input_dim, INTERNAL_DIM, LEARNING_RATE)
-
+    graphsage.train()
+    print(graphsage.summary())
     tf.saved_model.save(
         graphsage,
         "keras/graphsage",
