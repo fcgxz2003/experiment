@@ -1,6 +1,11 @@
+import ipaddress
+
 import pandas as pd
 from collections import defaultdict
 import numpy as np
+import socket
+import tensorflow as tf
+from GraphSage import GraphSage
 
 
 def read_nt():
@@ -108,6 +113,7 @@ def read_nt():
         dest_id_4 = df.loc[index]['dest_id_4']
         dest_id_5 = df.loc[index]['dest_id_5']
 
+        # 现在是有向图，之后可以试试无向图
         src_id = node_index[src_id]
         adj_lists[src_id].add(node_index[dest_id_1])
         adj_lists[src_id].add(node_index[dest_id_2])
@@ -115,10 +121,63 @@ def read_nt():
         adj_lists[src_id].add(node_index[dest_id_4])
         adj_lists[src_id].add(node_index[dest_id_5])
 
+    node_num = i
     adj_lists = {k: np.array(list(v)) for k, v in adj_lists.items()}
+    print(node_num)
     print(adj_lists)
-
     print(raw_feature)
 
+    # ip 用32维度，看效果
+    # location 先默认是2*3*3 = 18 维度  省| 市 | 县
+    # idc 先默认只有10个idc
+    feature = []
+
+    for f in raw_feature:
+        ip = ip_to_binary(f[0])
+        if pd.isna(f[1]):
+            ip = ip + [0 for i in range(18)]
+        if pd.isna(f[2]):
+            ip = ip + [0 for i in range(10)]
+
+        feature.append(ip)
+
+    print(feature)
+    return node_num, feature, adj_lists
+
+
+def ip_to_binary(ip_address):
+    # 将IP地址解析为IPv4Network对象
+    network = ipaddress.IPv4Network(ip_address)
+    # 获取网络地址的整数表示
+    ip_integer = int(network.network_address)
+    # 将整数转换为32位二进制列表
+    binary_list = [int(bit) for bit in f'{ip_integer:032b}']
+    return binary_list
+
+
 if __name__ == '__main__':
-    read_nt()
+    node_num, feature, adj_lists = read_nt()
+
+    # 暂时先拟定IDC 是10维，然后location  2| 3 | 3 | = 2*3*3 共 18维，然后IP 是32维
+
+    idc_dim = 10
+    location_dim = 2 * 3 * 3
+    ip_dim = 32
+    input_dim = idc_dim + location_dim + ip_dim
+
+    INTERNAL_DIM = 128
+    SAMPLE_SIZES = [5, 5]
+    LEARNING_RATE = 0.001
+
+    graphsage = GraphSage(input_dim, INTERNAL_DIM, LEARNING_RATE)
+    graphsage.train()
+
+    print(graphsage.summary())
+    tf.saved_model.save(
+        graphsage,
+        "keras/graphsage",
+        signatures={
+            "call": graphsage.call,
+            "train": graphsage.train,
+        },
+    )

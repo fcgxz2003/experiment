@@ -145,7 +145,7 @@ class GraphSage(tf.keras.Model):
         :return: loss
         """
         with tf.GradientTape() as tape:
-            predict_value = self.call(src_nodes, dstsrc2src_1, dstsrc2src_2, dstsrc2dst_1, dstsrc2dst_2, dif_mat_1,
+            predict_value = self(src_nodes, dstsrc2src_1, dstsrc2src_2, dstsrc2dst_1, dstsrc2dst_2, dif_mat_1,
                                       dif_mat_2)
             loss = self.compute_uloss(predict_value, real_value, piece_count)
         grads = tape.gradient(loss, self.trainable_weights)
@@ -160,6 +160,7 @@ class GraphSage(tf.keras.Model):
         :param piece_count:
         :return:
         """
+
         return tf.constant(2.111381)
 
     # def compute_uloss(self, embeddingA, embeddingB, embeddingN, neg_weight):
@@ -184,11 +185,11 @@ class GraphSage(tf.keras.Model):
 
 
 if __name__ == "__main__":
-    # 暂时先拟定IDC 是3维，然后location  2| 2 | 3 | = 2*2*3 共 12维，然后IP 是4维
+    # 暂时先拟定IDC 是10维，然后location  2| 3 | 3 | = 2*3*3 共 18维，然后IP 是32维
 
-    idc_dim = 3
-    location_dim = 2 * 2 * 3
-    ip_dim = 4
+    idc_dim = 10
+    location_dim = 2 * 3 * 3
+    ip_dim = 32
     input_dim = idc_dim + location_dim + ip_dim
 
     INTERNAL_DIM = 128
@@ -197,6 +198,7 @@ if __name__ == "__main__":
 
     graphsage = GraphSage(input_dim, INTERNAL_DIM, LEARNING_RATE)
     graphsage.train()
+
     print(graphsage.summary())
     tf.saved_model.save(
         graphsage,
