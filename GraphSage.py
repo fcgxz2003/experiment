@@ -70,14 +70,14 @@ class GraphSage(tf.keras.Model):
                                       )
 
         # MLP
-        # # TODO：维度的修正，输出多少个维度？用几层网络。
-        #
-        # self.dense_ly1 = tf.keras.layers.Dense(64, activation=tf.nn.relu, dtype='float64')(tf.keras.layers.Input(shape=(None,internal_dim)))
-        # self.dense_ly2 = tf.keras.layers.Dense(32, activation=tf.nn.relu, dtype='float64')(tf.keras.layers.Input(shape=(None,64)))
-        # self.dense_ly3 = tf.keras.layers.Dense(16, activation=tf.nn.relu, dtype='float64')(tf.keras.layers.Input(shape=(None,32)))
-        # self.dense_ly4 = tf.keras.layers.Dense(8, activation=tf.nn.relu, dtype='float64')(tf.keras.layers.Input(shape=(None,16)))
-        # # TODO： 是否用softmax 函数作为输出，因为是要映射到0~1之间？
-        # self.dense_ly5 = tf.keras.layers.Dense(1, activation=tf.nn.softmax, dtype='float64')(tf.keras.layers.Input(shape=(None,8)))
+        # TODO：维度的修正，输出多少个维度？用几层网络。
+
+        self.dense_ly1 = tf.keras.layers.Dense(64, activation=tf.nn.relu, dtype='float64')(tf.keras.layers.Input(shape=(None,internal_dim)))
+        self.dense_ly2 = tf.keras.layers.Dense(32, activation=tf.nn.relu, dtype='float64')(tf.keras.layers.Input(shape=(None,64)))
+        self.dense_ly3 = tf.keras.layers.Dense(16, activation=tf.nn.relu, dtype='float64')(tf.keras.layers.Input(shape=(None,32)))
+        self.dense_ly4 = tf.keras.layers.Dense(8, activation=tf.nn.relu, dtype='float64')(tf.keras.layers.Input(shape=(None,16)))
+        # TODO： 是否用softmax 函数作为输出，因为是要映射到0~1之间？
+        self.dense_ly5 = tf.keras.layers.Dense(1, activation=tf.nn.softmax, dtype='float64')(tf.keras.layers.Input(shape=(None,8)))
 
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
@@ -109,12 +109,12 @@ class GraphSage(tf.keras.Model):
         x = self.agg_ly2.call(x, dstsrc2src_1, dstsrc2dst_1, dif_mat_1)
 
         # # MLP
-        # embeddingABN = tf.math.l2_normalize(x, 1)
-        # x = self.dense_ly1(embeddingABN)
-        # x = self.dense_ly2(x)
-        # x = self.dense_ly3(x)
-        # x = self.dense_ly4(x)
-        # x = self.dense_ly5(x)
+        embeddingABN = tf.math.l2_normalize(x, 1)
+        x = self.dense_ly1(embeddingABN)
+        x = self.dense_ly2(x)
+        x = self.dense_ly3(x)
+        x = self.dense_ly4(x)
+        x = self.dense_ly5(x)
         return x
 
     @tf.function(
@@ -146,7 +146,7 @@ class GraphSage(tf.keras.Model):
         """
         with tf.GradientTape() as tape:
             predict_value = self(src_nodes, dstsrc2src_1, dstsrc2src_2, dstsrc2dst_1, dstsrc2dst_2, dif_mat_1,
-                                      dif_mat_2)
+                                 dif_mat_2)
             loss = self.compute_uloss(predict_value, real_value, piece_count)
         grads = tape.gradient(loss, self.trainable_weights)
         self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
@@ -155,33 +155,13 @@ class GraphSage(tf.keras.Model):
     def compute_uloss(self, predict_value, real_value, piece_count):
         """
         loss function 需要魔改，这三者维度相同
-        :param predict_value:
-        :param real_value:
-        :param piece_count:
+        :param predict_value: 预测值
+        :param real_value: 真实值
+        :param piece_count: 下载量的大小
         :return:
         """
 
-        return tf.constant(2.111381)
-
-    # def compute_uloss(self, embeddingA, embeddingB, embeddingN, neg_weight):
-    #
-    #     # positive affinity: pair-wise calculation
-    #     pos_affinity = tf.reduce_sum(tf.multiply(embeddingA, embeddingB), axis=1)
-    #     # negative affinity: enumeration of all combinations of (embeddingA, embeddingN)
-    #     neg_affinity = tf.matmul(embeddingA, tf.transpose(embeddingN))
-    #
-    #     pos_xent = tf.nn.sigmoid_cross_entropy_with_logits(tf.ones_like(pos_affinity)
-    #                                                        , pos_affinity
-    #                                                        , "positive_xent")
-    #     neg_xent = tf.nn.sigmoid_cross_entropy_with_logits(tf.zeros_like(neg_affinity)
-    #                                                        , neg_affinity
-    #                                                        , "negative_xent")
-    #
-    #     weighted_neg = tf.multiply(neg_weight, tf.reduce_sum(neg_xent))
-    #     batch_loss = tf.add(tf.reduce_sum(pos_xent), weighted_neg)
-    #
-    #     # per batch loss: GraphSAGE:models.py line 378
-    #     return tf.divide(batch_loss, embeddingA.shape[0])
+        return tf.subtract(tf.divide(real_value, piece_count), predict_value)
 
 
 if __name__ == "__main__":
