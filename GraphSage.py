@@ -1,4 +1,5 @@
 import tensorflow as tf
+from preprocess import read_d, read_nt
 
 
 class MeanAggregator(tf.keras.layers.Layer):
@@ -72,12 +73,17 @@ class GraphSage(tf.keras.Model):
         # MLP
         # TODO：维度的修正，输出多少个维度？用几层网络。
 
-        self.dense_ly1 = tf.keras.layers.Dense(64, activation=tf.nn.relu, dtype='float64')(tf.keras.layers.Input(shape=(None,internal_dim)))
-        self.dense_ly2 = tf.keras.layers.Dense(32, activation=tf.nn.relu, dtype='float64')(tf.keras.layers.Input(shape=(None,64)))
-        self.dense_ly3 = tf.keras.layers.Dense(16, activation=tf.nn.relu, dtype='float64')(tf.keras.layers.Input(shape=(None,32)))
-        self.dense_ly4 = tf.keras.layers.Dense(8, activation=tf.nn.relu, dtype='float64')(tf.keras.layers.Input(shape=(None,16)))
+        self.dense_ly1 = tf.keras.layers.Dense(64, activation=tf.nn.relu, dtype='float64')(
+            tf.keras.layers.Input(shape=(None, internal_dim)))
+        self.dense_ly2 = tf.keras.layers.Dense(32, activation=tf.nn.relu, dtype='float64')(
+            tf.keras.layers.Input(shape=(None, 64)))
+        self.dense_ly3 = tf.keras.layers.Dense(16, activation=tf.nn.relu, dtype='float64')(
+            tf.keras.layers.Input(shape=(None, 32)))
+        self.dense_ly4 = tf.keras.layers.Dense(8, activation=tf.nn.relu, dtype='float64')(
+            tf.keras.layers.Input(shape=(None, 16)))
         # TODO： 是否用softmax 函数作为输出，因为是要映射到0~1之间？
-        self.dense_ly5 = tf.keras.layers.Dense(1, activation=tf.nn.softmax, dtype='float64')(tf.keras.layers.Input(shape=(None,8)))
+        self.dense_ly5 = tf.keras.layers.Dense(1, activation=tf.nn.softmax, dtype='float64')(
+            tf.keras.layers.Input(shape=(None, 8)))
 
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
@@ -161,7 +167,7 @@ class GraphSage(tf.keras.Model):
         :return:
         """
 
-        return tf.subtract(tf.divide(real_value, piece_count), predict_value)
+        return tf.reduce_mean(tf.subtract(tf.divide(real_value, piece_count), predict_value))
 
 
 if __name__ == "__main__":
@@ -177,6 +183,8 @@ if __name__ == "__main__":
     LEARNING_RATE = 0.001
 
     graphsage = GraphSage(input_dim, INTERNAL_DIM, LEARNING_RATE)
+    node_num, feature, adj_lists, node_index = read_nt()
+
     graphsage.train()
 
     print(graphsage.summary())
