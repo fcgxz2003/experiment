@@ -1,8 +1,23 @@
-import random
-
 import tensorflow as tf
 from preprocess import read_nt
 from minibatch import build_batch_from_nodes
+
+
+class RawFeature(tf.keras.layers.Layer):
+    def __init__(self, features, **kwargs):
+        """
+        :param ndarray((#(node), #(feature))) features: a matrix, each row is feature for a node
+        """
+        super().__init__(trainable=False, **kwargs)
+        # 转成张量
+        self.features = tf.constant(features, dtype=tf.float32)
+
+    def call(self, nodes):
+        """
+        :param [int] nodes: node ids
+        """
+        # 是从 self.features 中收集（获取）特定索引 nodes 对应的向量。
+        return tf.gather(self.features, nodes)
 
 
 class MeanAggregator(tf.keras.layers.Layer):
@@ -48,20 +63,20 @@ class MeanAggregator(tf.keras.layers.Layer):
 
 
 class GraphSage(tf.keras.Model):
-    def __init__(self, input_dim, internal_dim, learning_rate):
+    def __init__(self, raw_features, internal_dim, learning_rate):
         """
         GraphSage Initialization.
-        :param input_dim: 输入的维数
+        :param raw_features: 输入所有的维度，方便聚合
         :param internal_dim: 中间层的维数
         :param learning_rate: 学习率
         """
         # GraphSage
-        assert input_dim > 0, 'illegal parameter "input_dim"'
         assert internal_dim > 0, 'illegal parameter "internal_dim"'
         assert learning_rate > 0, 'illegal parameter "learning_rate"'
 
         super().__init__()
-        self.agg_ly1 = MeanAggregator(input_dim
+        self.input_layer = RawFeature(raw_features, name="raw_feature_layer")
+        self.agg_ly1 = MeanAggregator(raw_features.shape[-1]
                                       , internal_dim
                                       , name="agg_lv1"
                                       , activ=True
@@ -70,36 +85,31 @@ class GraphSage(tf.keras.Model):
         self.agg_ly2 = MeanAggregator(internal_dim
                                       , internal_dim
                                       , name="agg_lv2"
-                                      , activ=True
+                                      , activ=False
                                       )
 
         # MLP
         # TODO：维度的修正，输出多少个维度？用几层网络。
 
-        self.dense_ly1 = tf.keras.layers.Dense(64, activation=tf.nn.relu, dtype='float64')(
-            tf.keras.layers.Input(shape=(None, internal_dim)))
-        self.dense_ly2 = tf.keras.layers.Dense(32, activation=tf.nn.relu, dtype='float64')(
-            tf.keras.layers.Input(shape=(None, 64)))
-        self.dense_ly3 = tf.keras.layers.Dense(16, activation=tf.nn.relu, dtype='float64')(
-            tf.keras.layers.Input(shape=(None, 32)))
-        self.dense_ly4 = tf.keras.layers.Dense(8, activation=tf.nn.relu, dtype='float64')(
-            tf.keras.layers.Input(shape=(None, 16)))
+        self.dense_ly1 = tf.keras.layers.Dense(64, activation=tf.nn.relu, dtype='float64')
+        self.dense_ly2 = tf.keras.layers.Dense(32, activation=tf.nn.relu, dtype='float64')
+        self.dense_ly3 = tf.keras.layers.Dense(16, activation=tf.nn.relu, dtype='float64')
+        self.dense_ly4 = tf.keras.layers.Dense(8, activation=tf.nn.relu, dtype='float64')
         # TODO： 是否用softmax 函数作为输出，因为是要映射到0~1之间？
-        self.dense_ly5 = tf.keras.layers.Dense(1, activation=tf.nn.softmax, dtype='float64')(
-            tf.keras.layers.Input(shape=(None, 8)))
+        self.dense_ly5 = tf.keras.layers.Dense(1, activation=tf.nn.softmax, dtype='float64')
 
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
-    @tf.function(
-        input_signature=[
-            tf.TensorSpec(shape=None, dtype=tf.float32),
-            tf.TensorSpec(shape=None, dtype=tf.int64),
-            tf.TensorSpec(shape=None, dtype=tf.int64),
-            tf.TensorSpec(shape=None, dtype=tf.int64),
-            tf.TensorSpec(shape=None, dtype=tf.int64),
-            tf.TensorSpec(shape=(None, None), dtype=tf.float32),
-            tf.TensorSpec(shape=(None, None), dtype=tf.float32),
-        ])
+    # @tf.function(
+    #     input_signature=[
+    #         tf.TensorSpec(shape=None, dtype=tf.float32),
+    #         tf.TensorSpec(shape=None, dtype=tf.int64),
+    #         tf.TensorSpec(shape=None, dtype=tf.int64),
+    #         tf.TensorSpec(shape=None, dtype=tf.int64),
+    #         tf.TensorSpec(shape=None, dtype=tf.int64),
+    #         tf.TensorSpec(shape=(None, None), dtype=tf.float32),
+    #         tf.TensorSpec(shape=(None, None), dtype=tf.float32),
+    #     ])
     def call(self, src_nodes, dstsrc2src_1, dstsrc2src_2, dstsrc2dst_1, dstsrc2dst_2, dif_mat_1, dif_mat_2):
         """
         前向传播
@@ -114,8 +124,9 @@ class GraphSage(tf.keras.Model):
         """
         # GraphSage
         # 先聚合第二层，再聚合第一层
-        x = self.agg_ly1.call(src_nodes, dstsrc2src_2, dstsrc2dst_2, dif_mat_2)
-        x = self.agg_ly2.call(x, dstsrc2src_1, dstsrc2dst_1, dif_mat_1)
+        x = self.input_layer(tf.squeeze(src_nodes))
+        x = self.agg_ly1(x, dstsrc2src_2, dstsrc2dst_2, dif_mat_2)
+        x = self.agg_ly2(x, dstsrc2src_1, dstsrc2dst_1, dif_mat_1)
 
         # # MLP
         embeddingABN = tf.math.l2_normalize(x, 1)
@@ -126,20 +137,20 @@ class GraphSage(tf.keras.Model):
         x = self.dense_ly5(x)
         return x
 
-    @tf.function(
-        input_signature=[
-            tf.TensorSpec(shape=None, dtype=tf.float32),
-            tf.TensorSpec(shape=None, dtype=tf.int64),
-            tf.TensorSpec(shape=None, dtype=tf.int64),
-            tf.TensorSpec(shape=None, dtype=tf.int64),
-            tf.TensorSpec(shape=None, dtype=tf.int64),
-            tf.TensorSpec(shape=(None, None), dtype=tf.float32),
-            tf.TensorSpec(shape=(None, None), dtype=tf.float32),
-            tf.TensorSpec(shape=(None, None), dtype=tf.float32),
-            tf.TensorSpec(shape=(None, None), dtype=tf.int64),
-        ])
-    def train(self, src_nodes, dstsrc2src_1, dstsrc2src_2, dstsrc2dst_1, dstsrc2dst_2, dif_mat_1, dif_mat_2, real_value,
-              piece_count):
+    # @tf.function(
+    #     input_signature=[
+    #         tf.TensorSpec(shape=None, dtype=tf.int64),
+    #         tf.TensorSpec(shape=None, dtype=tf.int64),
+    #         tf.TensorSpec(shape=None, dtype=tf.int64),
+    #         tf.TensorSpec(shape=None, dtype=tf.int64),
+    #         tf.TensorSpec(shape=None, dtype=tf.int64),
+    #         tf.TensorSpec(shape=(None, None), dtype=tf.float32),
+    #         tf.TensorSpec(shape=(None, None), dtype=tf.float32),
+    #         tf.TensorSpec(shape=(None, None), dtype=tf.int64),
+    #         tf.TensorSpec(shape=(None, None), dtype=tf.int64),
+    #     ])
+    def train(self, src_nodes, dstsrc2src_1, dstsrc2src_2, dstsrc2dst_1, dstsrc2dst_2, dif_mat_1, dif_mat_2,
+              piece_length, piece_cost):
         """
         训练过程，这里要限定好batch_size，控制好维度
         :param src_nodes: 这里省去了 tf.gather(self.features, nodes)这一步，直接将src结点的特征传进来即可。
@@ -149,28 +160,28 @@ class GraphSage(tf.keras.Model):
         :param dstsrc2dst_2:
         :param dif_mat_1:
         :param dif_mat_2:
-        :param real_value:
-        :param piece_count:
+        :param piece_length: piece length
+        :param piece_cost: piece cost
         :return: loss
         """
         with tf.GradientTape() as tape:
             predict_value = self(src_nodes, dstsrc2src_1, dstsrc2src_2, dstsrc2dst_1, dstsrc2dst_2, dif_mat_1,
                                  dif_mat_2)
-            loss = self.compute_uloss(predict_value, real_value, piece_count)
+            loss = self.compute_uloss(predict_value, piece_length, piece_cost)
         grads = tape.gradient(loss, self.trainable_weights)
         self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
         return loss
 
-    def compute_uloss(self, predict_value, real_value, piece_count):
+    def compute_uloss(self, predict_value, piece_length, piece_cost):
         """
         loss function 需要魔改，这三者维度相同
         :param predict_value: 预测值
-        :param real_value: 真实值
-        :param piece_count: 下载量的大小
+        :param piece_length: 下载piece 的大小
+        :param piece_cost: 下载piece 的开销
         :return:
         """
 
-        return tf.reduce_mean(tf.subtract(tf.divide(real_value, piece_count), predict_value))
+        return tf.reduce_mean(tf.subtract(tf.divide(piece_length, piece_cost), predict_value))
 
 
 if __name__ == "__main__":
@@ -179,26 +190,48 @@ if __name__ == "__main__":
     idc_dim = 10
     location_dim = 2 * 3 * 3
     ip_dim = 32
-    input_dim = idc_dim + location_dim + ip_dim
 
     INTERNAL_DIM = 128
     SAMPLE_SIZES = [5, 5]
     LEARNING_RATE = 0.001
 
-    graphsage = GraphSage(input_dim, INTERNAL_DIM, LEARNING_RATE)
     node_num, feature, adj_lists, node_index = read_nt()
 
     # 瞎弄几个带宽
 
     src_nodes, dstsrc2srcs, dstsrc2dsts, dif_mats = build_batch_from_nodes([0, 1], adj_lists, SAMPLE_SIZES)
-    print('-------')
-    print(src_nodes)
-    print(dstsrc2srcs)
-    print(dstsrc2dsts)
-    print(dif_mats)
 
-    # graphsage.train()
-    #
+    # ds: dst_nodes, src_nodes的并集, 其中dst_nodes为要计算传播矩阵的节点，src_nodes为dst_nodes邻居节点的综合。
+    # d2s: 在已排序的数组ds中查找src_nodes数组中的每个元素索引。
+    # d2d: 在已排序的数组ds中查找dst_nodes数组中的每个元素索引。
+    # dm: 均值聚合矩阵
+
+    # print('-------')
+    # print(src_nodes)
+    # print(dstsrc2srcs)
+    # print(dstsrc2dsts)
+    # print(dif_mats)
+
+    pieceLength = [15728640]
+    pieceCost = [52905000000]
+
+    graphsage = GraphSage(feature, INTERNAL_DIM, LEARNING_RATE)
+    loss = graphsage.train(tf.constant(src_nodes),
+                           tf.constant(dstsrc2srcs[0]), tf.constant(dstsrc2srcs[1]),
+                           tf.constant(dstsrc2dsts[0]), tf.constant(dstsrc2dsts[1]),
+                           tf.constant(dif_mats[0]), tf.constant(dif_mats[1]),
+                           tf.constant(pieceLength, dtype=tf.int64), tf.constant(pieceCost))
+
+    print("loss:", loss)
+
+    src_nodes, dstsrc2srcs, dstsrc2dsts, dif_mats = build_batch_from_nodes([1, 2], adj_lists, SAMPLE_SIZES)
+    predicted_value = graphsage.call(tf.constant(src_nodes),
+                                     tf.constant(dstsrc2srcs[0]), tf.constant(dstsrc2srcs[1]),
+                                     tf.constant(dstsrc2dsts[0]), tf.constant(dstsrc2dsts[1]),
+                                     tf.constant(dif_mats[0]), tf.constant(dif_mats[1]))
+    print("predicted_value:", predicted_value)
+
+
     # print(graphsage.summary())
     # tf.saved_model.save(
     #     graphsage,

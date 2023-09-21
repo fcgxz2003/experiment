@@ -4,6 +4,7 @@ import pandas as pd
 from collections import defaultdict
 import numpy as np
 
+
 def read_nt():
     df = pd.read_csv("dataset/networktopology.csv", sep=',', header=None,
                      names=['nt_id', 'src_id', 'src_type', 'src_hostname', 'src_ip', 'src_port',
@@ -96,8 +97,6 @@ def read_nt():
             raw_feature.append([dest_ip_5, dest_network_location_5, dest_network_idc_5])
             i = i + 1
 
-    print(node_index)
-
     # 构建邻居信息表 1：[2,3,4]...
     adj_lists = defaultdict(set)
     # 遍历csv, 将host_id 转成index
@@ -131,12 +130,8 @@ def read_nt():
         adj_lists[node_index[dest_id_4]].add(src_id)
         adj_lists[node_index[dest_id_5]].add(src_id)
 
-
     node_num = i
     adj_lists = {k: np.array(list(v)) for k, v in adj_lists.items()}
-    print(node_num)
-    print(adj_lists)
-    print(raw_feature)
 
     # ip 用32维度，看效果
     # location 先默认是2*3*3 = 18 维度  省| 市 | 县
@@ -152,8 +147,7 @@ def read_nt():
 
         feature.append(ip)
 
-    print(feature)
-    return node_num, feature, adj_lists, node_index
+    return node_num, np.array(feature), adj_lists, node_index
 
 
 def ip_to_binary(ip_address):
@@ -1380,48 +1374,60 @@ def read_d(node_index):
                      ])
     print(df)
 
-    bandwidth_map = {}
-    # 遍历csv, 将host_id 转成index
     for index in df.index:
         src_id = df.loc[index]['host_id']
+        dest_id = df.loc[index]['0parent_id']
+
+        pieceLength = df.loc[index]['0parent_0piece_Length']
+        pieceCost = df.loc[index]['0parent_0piece_cost']
         print(src_id)
-        if node_index.get(src_id) is None:
-            continue
+        print(dest_id)
+        print(pieceLength)
+        print(pieceCost)
 
-        for i in range(20):
-            parent_key = str(i) + 'parent_id'
-            print(parent_key)
-            dest_id = df.loc[index][parent_key]
+    # bandwidth_map = {}
+    # # 遍历csv, 将host_id 转成index
+    # for index in df.index:
+    #     src_id = df.loc[index]['host_id']
+    #     print(src_id)
+    #     if node_index.get(src_id) is None:
+    #         continue
+    #
+    #     for i in range(20):
+    #         parent_key = str(i) + 'parent_id'
+    #         print(parent_key)
+    #         dest_id = df.loc[index][parent_key]
+    #
+    #         print(dest_id)
+    #         if dest_id != '':
+    #             for j in range(10):
+    #                 pieceLength_key = parent_key + '_' + str(j) + 'piece_Length'
+    #                 pieceLength = df.loc[index][pieceLength_key]
+    #                 pieceCost_key = parent_key + '_' + str(j) + 'piece_cost'
+    #                 pieceCost = df.loc[index][pieceCost_key]
+    #                 if pieceLength != '':
+    #                     bandwidth = float(pieceLength) / float(pieceCost)
+    #
+    #                     # 存起来
+    #                     src_index = node_index[src_id]
+    #                     dest_index = node_index[dest_id]
+    #
+    #                     bandwidth_key = src_index + ':' + dest_index
+    #
+    #                     if bandwidth_map.get(bandwidth_key) is None:
+    #                         bandwidth_map[bandwidth_key] = bandwidth
+    #                     else:
+    #                         if bandwidth_map[bandwidth_key] < bandwidth:
+    #                             bandwidth_map[bandwidth_key] = bandwidth
+    #
+    # print(bandwidth_map)
+    return {}
 
-            print(dest_id)
-            if dest_id != '':
-                for j in range(10):
-                    pieceLength_key = parent_key + '_' + str(j) + 'piece_Length'
-                    pieceLength = df.loc[index][pieceLength_key]
-                    pieceCost_key = parent_key + '_' + str(j) + 'piece_cost'
-                    pieceCost = df.loc[index][pieceCost_key]
-                    if pieceLength != '':
-                        bandwidth = float(pieceLength) / float(pieceCost)
-
-                        # 存起来
-                        src_index = node_index[src_id]
-                        dest_index = node_index[dest_id]
-
-                        bandwidth_key = src_index + ':' + dest_index
-
-                        if bandwidth_map.get(bandwidth_key) is None:
-                            bandwidth_map[bandwidth_key] = bandwidth
-                        else:
-                            if bandwidth_map[bandwidth_key] < bandwidth:
-                                bandwidth_map[bandwidth_key] = bandwidth
-
-    print(bandwidth_map)
-    return bandwidth_map
 
 if __name__ == '__main__':
     node_num, feature, adj_lists, node_index = read_nt()
     # 把host id 和index 映射关系传一下，方便后面使用
-    # bandwidth_map = read_d(node_index)
+    bandwidth_map = read_d(node_index)
 
     #
     # # 暂时先拟定IDC 是10维，然后location  2| 3 | 3 | = 2*3*3 共 18维，然后IP 是32维
