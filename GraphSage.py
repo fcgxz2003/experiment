@@ -1,5 +1,8 @@
+import random
+
 import tensorflow as tf
-from preprocess import read_d, read_nt
+from preprocess import read_nt
+from minibatch import build_batch_from_nodes
 
 
 class MeanAggregator(tf.keras.layers.Layer):
@@ -185,14 +188,23 @@ if __name__ == "__main__":
     graphsage = GraphSage(input_dim, INTERNAL_DIM, LEARNING_RATE)
     node_num, feature, adj_lists, node_index = read_nt()
 
-    graphsage.train()
+    # 瞎弄几个带宽
 
-    print(graphsage.summary())
-    tf.saved_model.save(
-        graphsage,
-        "keras/graphsage",
-        signatures={
-            "call": graphsage.call,
-            "train": graphsage.train,
-        },
-    )
+    src_nodes, dstsrc2srcs, dstsrc2dsts, dif_mats = build_batch_from_nodes([0, 1], adj_lists, SAMPLE_SIZES)
+    print('-------')
+    print(src_nodes)
+    print(dstsrc2srcs)
+    print(dstsrc2dsts)
+    print(dif_mats)
+
+    # graphsage.train()
+    #
+    # print(graphsage.summary())
+    # tf.saved_model.save(
+    #     graphsage,
+    #     "keras/graphsage",
+    #     signatures={
+    #         "call": graphsage.call,
+    #         "train": graphsage.train,
+    #     },
+    # )

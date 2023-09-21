@@ -115,6 +115,7 @@ def build_batch_from_nodes(nodes, neigh_dict, sample_sizes):
 #                       Private Functions                      #
 ################################################################
 
+# 注意力机制矩阵需要在这里修改
 def _compute_diffusion_matrix(dst_nodes, neigh_dict, sample_size, max_node_id):
     def sample(ns):
         return np.random.choice(ns, min(len(ns), sample_size), replace=False)
@@ -125,6 +126,14 @@ def _compute_diffusion_matrix(dst_nodes, neigh_dict, sample_size, max_node_id):
         return v
 
     # sample neighbors
+    print(neigh_dict[0])
+    print(sample(neigh_dict[0]))
+    print(vectorize(sample(neigh_dict[0])))
+
+    print(neigh_dict[1])
+    print(sample(neigh_dict[1]))
+    print(vectorize(sample(neigh_dict[1])))
+
     adj_mat_full = np.stack([vectorize(sample(neigh_dict[n])) for n in dst_nodes])
     nonzero_cols_mask = np.any(adj_mat_full.astype(np.bool), axis=0)
 

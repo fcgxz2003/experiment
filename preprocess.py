@@ -3,10 +3,6 @@ import ipaddress
 import pandas as pd
 from collections import defaultdict
 import numpy as np
-import socket
-import tensorflow as tf
-from GraphSage import GraphSage
-
 
 def read_nt():
     df = pd.read_csv("dataset/networktopology.csv", sep=',', header=None,
@@ -113,13 +109,28 @@ def read_nt():
         dest_id_4 = df.loc[index]['dest_id_4']
         dest_id_5 = df.loc[index]['dest_id_5']
 
-        # 现在是有向图，之后可以试试无向图
+        # # 现在是有向图，之后可以试试无向图
+        # src_id = node_index[src_id]
+        # adj_lists[src_id].add(node_index[dest_id_1])
+        # adj_lists[src_id].add(node_index[dest_id_2])
+        # adj_lists[src_id].add(node_index[dest_id_3])
+        # adj_lists[src_id].add(node_index[dest_id_4])
+        # adj_lists[src_id].add(node_index[dest_id_5])
+
+        # 无向图
         src_id = node_index[src_id]
         adj_lists[src_id].add(node_index[dest_id_1])
         adj_lists[src_id].add(node_index[dest_id_2])
         adj_lists[src_id].add(node_index[dest_id_3])
         adj_lists[src_id].add(node_index[dest_id_4])
         adj_lists[src_id].add(node_index[dest_id_5])
+
+        adj_lists[node_index[dest_id_1]].add(src_id)
+        adj_lists[node_index[dest_id_2]].add(src_id)
+        adj_lists[node_index[dest_id_3]].add(src_id)
+        adj_lists[node_index[dest_id_4]].add(src_id)
+        adj_lists[node_index[dest_id_5]].add(src_id)
+
 
     node_num = i
     adj_lists = {k: np.array(list(v)) for k, v in adj_lists.items()}
@@ -1410,7 +1421,7 @@ def read_d(node_index):
 if __name__ == '__main__':
     node_num, feature, adj_lists, node_index = read_nt()
     # 把host id 和index 映射关系传一下，方便后面使用
-    bandwidth_map = read_d(node_index)
+    # bandwidth_map = read_d(node_index)
 
     #
     # # 暂时先拟定IDC 是10维，然后location  2| 3 | 3 | = 2*3*3 共 18维，然后IP 是32维
