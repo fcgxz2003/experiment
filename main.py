@@ -22,7 +22,7 @@ if __name__ == "__main__":
     # print(dif_mats)
 
     # 瞎弄几个带宽
-    pieceLength = [15728640]
+    pieceLength = [15728640*1000000]
     pieceCost = [52905000000]
 
     graphsage = GraphSage(feature, INTERNAL_DIM, LEARNING_RATE)
@@ -40,7 +40,7 @@ if __name__ == "__main__":
                            tf.constant(dstsrc2dsts1[0]), tf.constant(dstsrc2dsts1[1]),
                            tf.constant(dif_mats1[0]), tf.constant(dif_mats1[1]),
 
-                           tf.constant(pieceLength,dtype=tf.int64), tf.constant(pieceCost))
+                           tf.constant(pieceLength, dtype=tf.int64), tf.constant(pieceCost))
 
     print("loss:", loss)
 

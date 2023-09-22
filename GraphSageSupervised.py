@@ -86,34 +86,34 @@ class GraphSage(tf.keras.Model):
                                       , activ=False
                                       )
         # MLP
-        self.dense_ly1 = tf.keras.layers.Dense(32, activation=tf.nn.relu, dtype='float64')
-        self.dense_ly1.build(input_shape=(None, internal_dim*2))
-        self.dense_ly2 = tf.keras.layers.Dense(16, activation=tf.nn.relu, dtype='float64')
+        self.dense_ly1 = tf.keras.layers.Dense(32, activation=tf.nn.relu, dtype='float32', name="dense_ly1")
+        self.dense_ly1.build(input_shape=(None, internal_dim * 2))
+        self.dense_ly2 = tf.keras.layers.Dense(16, activation=tf.nn.relu, dtype='float32', name="dense_ly2")
         self.dense_ly2.build(input_shape=(None, 32))
-        self.dense_ly3 = tf.keras.layers.Dense(8, activation=tf.nn.relu, dtype='float64')
+        self.dense_ly3 = tf.keras.layers.Dense(8, activation=tf.nn.relu, dtype='float32', name="dense_ly3")
         self.dense_ly3.build(input_shape=(None, 16))
-        self.dense_ly4 = tf.keras.layers.Dense(1, dtype='float64')
+        self.dense_ly4 = tf.keras.layers.Dense(1, dtype='float32', name="dense_ly4")
         self.dense_ly4.build(input_shape=(None, 8))
 
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
-    # @tf.function(
-    #     input_signature=[
-    #         tf.TensorSpec(shape=None, dtype=tf.int64),
-    #         tf.TensorSpec(shape=None, dtype=tf.int64),
-    #         tf.TensorSpec(shape=None, dtype=tf.int64),
-    #         tf.TensorSpec(shape=None, dtype=tf.int64),
-    #         tf.TensorSpec(shape=None, dtype=tf.int64),
-    #         tf.TensorSpec(shape=(None, None), dtype=tf.float32),
-    #         tf.TensorSpec(shape=(None, None), dtype=tf.float32),
-    #         tf.TensorSpec(shape=None, dtype=tf.int64),
-    #         tf.TensorSpec(shape=None, dtype=tf.int64),
-    #         tf.TensorSpec(shape=None, dtype=tf.int64),
-    #         tf.TensorSpec(shape=None, dtype=tf.int64),
-    #         tf.TensorSpec(shape=None, dtype=tf.int64),
-    #         tf.TensorSpec(shape=(None, None), dtype=tf.float32),
-    #         tf.TensorSpec(shape=(None, None), dtype=tf.float32),
-    #     ])
+    @tf.function(
+        input_signature=[
+            tf.TensorSpec(shape=None, dtype=tf.int64),
+            tf.TensorSpec(shape=None, dtype=tf.int64),
+            tf.TensorSpec(shape=None, dtype=tf.int64),
+            tf.TensorSpec(shape=None, dtype=tf.int64),
+            tf.TensorSpec(shape=None, dtype=tf.int64),
+            tf.TensorSpec(shape=(None, None), dtype=tf.float32),
+            tf.TensorSpec(shape=(None, None), dtype=tf.float32),
+            tf.TensorSpec(shape=None, dtype=tf.int64),
+            tf.TensorSpec(shape=None, dtype=tf.int64),
+            tf.TensorSpec(shape=None, dtype=tf.int64),
+            tf.TensorSpec(shape=None, dtype=tf.int64),
+            tf.TensorSpec(shape=None, dtype=tf.int64),
+            tf.TensorSpec(shape=(None, None), dtype=tf.float32),
+            tf.TensorSpec(shape=(None, None), dtype=tf.float32),
+        ])
     def call(self, src_nodes0, dstsrc2src0_1, dstsrc2src0_2, dstsrc2dst0_1, dstsrc2dst0_2, dif_mat0_1,
              dif_mat0_2, src_nodes1, dstsrc2src1_1, dstsrc2src1_2, dstsrc2dst1_1, dstsrc2dst1_2,
              dif_mat1_1, dif_mat1_2):
@@ -131,35 +131,34 @@ class GraphSage(tf.keras.Model):
         dest = self.agg_ly2(dest, dstsrc2src1_1, dstsrc2dst1_1, dif_mat1_1)
 
         x = tf.concat([src, dest], 1)
-        print(x)
+
         # # MLP
         embeddingABN = tf.math.l2_normalize(x, 1)
-        print(embeddingABN)
         x = self.dense_ly1(embeddingABN)
         x = self.dense_ly2(x)
         x = self.dense_ly3(x)
         x = self.dense_ly4(x)
         return x
 
-    # @tf.function(
-    #     input_signature=[
-    #         tf.TensorSpec(shape=None, dtype=tf.int64),
-    #         tf.TensorSpec(shape=None, dtype=tf.int64),
-    #         tf.TensorSpec(shape=None, dtype=tf.int64),
-    #         tf.TensorSpec(shape=None, dtype=tf.int64),
-    #         tf.TensorSpec(shape=None, dtype=tf.int64),
-    #         tf.TensorSpec(shape=(None, None), dtype=tf.float32),
-    #         tf.TensorSpec(shape=(None, None), dtype=tf.float32),
-    #         tf.TensorSpec(shape=None, dtype=tf.int64),
-    #         tf.TensorSpec(shape=None, dtype=tf.int64),
-    #         tf.TensorSpec(shape=None, dtype=tf.int64),
-    #         tf.TensorSpec(shape=None, dtype=tf.int64),
-    #         tf.TensorSpec(shape=None, dtype=tf.int64),
-    #         tf.TensorSpec(shape=(None, None), dtype=tf.float32),
-    #         tf.TensorSpec(shape=(None, None), dtype=tf.float32),
-    #         tf.TensorSpec(shape=(None, None), dtype=tf.int64),
-    #         tf.TensorSpec(shape=(None, None), dtype=tf.int64),
-    #     ])
+    @tf.function(
+        input_signature=[
+            tf.TensorSpec(shape=None, dtype=tf.int64),
+            tf.TensorSpec(shape=None, dtype=tf.int64),
+            tf.TensorSpec(shape=None, dtype=tf.int64),
+            tf.TensorSpec(shape=None, dtype=tf.int64),
+            tf.TensorSpec(shape=None, dtype=tf.int64),
+            tf.TensorSpec(shape=(None, None), dtype=tf.float32),
+            tf.TensorSpec(shape=(None, None), dtype=tf.float32),
+            tf.TensorSpec(shape=None, dtype=tf.int64),
+            tf.TensorSpec(shape=None, dtype=tf.int64),
+            tf.TensorSpec(shape=None, dtype=tf.int64),
+            tf.TensorSpec(shape=None, dtype=tf.int64),
+            tf.TensorSpec(shape=None, dtype=tf.int64),
+            tf.TensorSpec(shape=(None, None), dtype=tf.float32),
+            tf.TensorSpec(shape=(None, None), dtype=tf.float32),
+            tf.TensorSpec(shape=(None, None), dtype=tf.int64),
+            tf.TensorSpec(shape=(None, None), dtype=tf.int64),
+        ])
     def train(self, src_nodes0, dstsrc2src0_1, dstsrc2src0_2, dstsrc2dst0_1, dstsrc2dst0_2, dif_mat0_1, dif_mat0_2,
               src_nodes1, dstsrc2src1_1, dstsrc2src1_2, dstsrc2dst1_1, dstsrc2dst1_2, dif_mat1_1, dif_mat1_2,
               piece_length, piece_cost):
@@ -181,6 +180,6 @@ class GraphSage(tf.keras.Model):
         :param predict_value: 预测值
         :param piece_length: 下载piece 的大小
         :param piece_cost: 下载piece 的开销
-        :return:
+        :return: 平均损失函数
         """
-        return tf.reduce_mean(tf.subtract(predict_value, tf.divide(piece_length, piece_cost)))
+        return tf.reduce_mean(tf.subtract(tf.divide(piece_length, piece_cost), tf.cast(predict_value, tf.float64)))
