@@ -86,19 +86,27 @@ class GraphSage(tf.keras.Model):
                                       , activ=False
                                       )
         # MLP
-        # TODO：维度的修正，输出多少个维度？用几层网络。
-        self.dense_ly1 = tf.keras.layers.Dense(64, activation=tf.nn.relu, dtype='float64')
-        self.dense_ly2 = tf.keras.layers.Dense(32, activation=tf.nn.relu, dtype='float64')
-        self.dense_ly3 = tf.keras.layers.Dense(16, activation=tf.nn.relu, dtype='float64')
-        self.dense_ly4 = tf.keras.layers.Dense(8, activation=tf.nn.relu, dtype='float64')
-        # TODO： 是否用softmax 函数作为输出，因为是要映射到0~1之间？
-        self.dense_ly5 = tf.keras.layers.Dense(1, activation=tf.nn.softmax, dtype='float64')
+        self.dense_ly1 = tf.keras.layers.Dense(32, activation=tf.nn.relu, dtype='float64')
+        self.dense_ly1.build(input_shape=(None, internal_dim*2))
+        self.dense_ly2 = tf.keras.layers.Dense(16, activation=tf.nn.relu, dtype='float64')
+        self.dense_ly2.build(input_shape=(None, 32))
+        self.dense_ly3 = tf.keras.layers.Dense(8, activation=tf.nn.relu, dtype='float64')
+        self.dense_ly3.build(input_shape=(None, 16))
+        self.dense_ly4 = tf.keras.layers.Dense(1, dtype='float64')
+        self.dense_ly4.build(input_shape=(None, 8))
 
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
     # @tf.function(
     #     input_signature=[
-    #         tf.TensorSpec(shape=None, dtype=tf.float32),
+    #         tf.TensorSpec(shape=None, dtype=tf.int64),
+    #         tf.TensorSpec(shape=None, dtype=tf.int64),
+    #         tf.TensorSpec(shape=None, dtype=tf.int64),
+    #         tf.TensorSpec(shape=None, dtype=tf.int64),
+    #         tf.TensorSpec(shape=None, dtype=tf.int64),
+    #         tf.TensorSpec(shape=(None, None), dtype=tf.float32),
+    #         tf.TensorSpec(shape=(None, None), dtype=tf.float32),
+    #         tf.TensorSpec(shape=None, dtype=tf.int64),
     #         tf.TensorSpec(shape=None, dtype=tf.int64),
     #         tf.TensorSpec(shape=None, dtype=tf.int64),
     #         tf.TensorSpec(shape=None, dtype=tf.int64),
@@ -123,23 +131,25 @@ class GraphSage(tf.keras.Model):
         dest = self.agg_ly2(dest, dstsrc2src1_1, dstsrc2dst1_1, dif_mat1_1)
 
         x = tf.concat([src, dest], 1)
+        print(x)
         # # MLP
         embeddingABN = tf.math.l2_normalize(x, 1)
-        print(x)
+        print(embeddingABN)
         x = self.dense_ly1(embeddingABN)
-        print(x)
         x = self.dense_ly2(x)
-        print(x)
         x = self.dense_ly3(x)
-        print(x)
         x = self.dense_ly4(x)
-        print(x)
-        x = self.dense_ly5(x)
-        print(x)
         return x
 
     # @tf.function(
     #     input_signature=[
+    #         tf.TensorSpec(shape=None, dtype=tf.int64),
+    #         tf.TensorSpec(shape=None, dtype=tf.int64),
+    #         tf.TensorSpec(shape=None, dtype=tf.int64),
+    #         tf.TensorSpec(shape=None, dtype=tf.int64),
+    #         tf.TensorSpec(shape=None, dtype=tf.int64),
+    #         tf.TensorSpec(shape=(None, None), dtype=tf.float32),
+    #         tf.TensorSpec(shape=(None, None), dtype=tf.float32),
     #         tf.TensorSpec(shape=None, dtype=tf.int64),
     #         tf.TensorSpec(shape=None, dtype=tf.int64),
     #         tf.TensorSpec(shape=None, dtype=tf.int64),
@@ -173,5 +183,4 @@ class GraphSage(tf.keras.Model):
         :param piece_cost: 下载piece 的开销
         :return:
         """
-
         return tf.reduce_mean(tf.subtract(predict_value, tf.divide(piece_length, piece_cost)))
