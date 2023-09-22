@@ -5,75 +5,7 @@ This module computes minibatch (data and auxiliary matrices) for mean aggregator
 
 requirement: neigh_dict is a BIDIRECTIONAL adjacency matrix in dict
 """
-
 import numpy as np
-import collections
-from functools import reduce
-
-
-def build_batch_from_edges(edges, nodes, neigh_dict, sample_sizes, neg_size):
-    """
-    This batch method is used for unsupervised mode. First, it prepares
-    auxiliary matrices for the combination of neighbor nodes (read from edges)
-    and negative sample nodes. Second, it provides mappings to filter the
-    results into three portions for use in the unsupervised loss function.
-
-    :param array([(int, int)]) edges: edge with node ids
-    :param array([int]) nodes: all node ids
-    :param {node:[node]} neigh_dict: BIDIRECTIONAL adjacency matrix in dict
-    :param [sample_size]: sample sizes for each layer, lens is the number of layers
-    :param int neg_size: size of batchN
-    :return namedtuple minibatch (3 more additional elements to supervised mode)
-        "src_nodes": node ids to retrieve from raw feature and feed to the first layer
-        "dstsrc2dsts": list of dstsrc2dst matrices from last to first layer
-        "dstsrc2srcs": list of dstsrc2src matrices from last to first layer
-        "dif_mats": list of dif_mat matrices from last to first layer
-        "dst2batchA": select batchA nodes from all nodes at the last layer
-        "dst2batchB": select batchB nodes from all nodes at the last layer
-        "dst2batchN": filter batchN nodes from all nodes at the last layer
-
-    Terms:
-    - batchA: just a set of nodes
-    - batchB: a set of nodes which are neighbors of batchA
-    - batchN: a set of negative sample nodes far away from batchA/batchB
-    Notes:
-    - batchA and batchB have the same size, and they are row-to-row paired in
-      training (u and v in Eq (1) in the GraphSage paper).
-    - batchN is randomly selected. The entire set is far from any node in
-      batchA/batchB. There is a small chance that a node in batchN is close
-      to a node in batchA/batchB.
-    """
-
-    batchA, batchB = edges.transpose()
-
-    possible_negs = reduce(np.setdiff1d
-                           , (nodes
-                              , batchA
-                              , _get_neighbors(batchA, neigh_dict)
-                              , batchB
-                              , _get_neighbors(batchB, neigh_dict)
-                              )
-                           )
-    batchN = np.random.choice(possible_negs
-                              , min(neg_size, len(possible_negs))
-                              , replace=False
-                              )
-
-    # np.unique sorts the return, required by the following np.searchsorted
-    batch_all = np.unique(np.concatenate((batchA, batchB, batchN)))
-    # order does matter, in the model, use tf.gather on this
-    dst2batchA = np.searchsorted(batch_all, batchA)
-    # order does matter, in the model, use tf.gather on this
-    dst2batchB = np.searchsorted(batch_all, batchB)
-    # order does not matter, in the model, use tf.boolean_mask on this
-    dst2batchN = np.in1d(batch_all, batchN)
-
-    src_nodes, dstsrc2srcs, dstsrc2dsts, dif_mats = build_batch_from_nodes(batch_all
-                                                                           , neigh_dict
-                                                                           , sample_sizes
-                                                                           )
-
-    return src_nodes, dstsrc2srcs, dstsrc2dsts, dif_mats, dst2batchA, dst2batchB, dst2batchN
 
 
 def build_batch_from_nodes(nodes, neigh_dict, sample_sizes):

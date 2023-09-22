@@ -1,6 +1,4 @@
 import tensorflow as tf
-from preprocess import read_nt
-from minibatch import build_batch_from_nodes
 
 
 class RawFeature(tf.keras.layers.Layer):
@@ -87,10 +85,8 @@ class GraphSage(tf.keras.Model):
                                       , name="agg_lv2"
                                       , activ=False
                                       )
-
         # MLP
         # TODO：维度的修正，输出多少个维度？用几层网络。
-
         self.dense_ly1 = tf.keras.layers.Dense(64, activation=tf.nn.relu, dtype='float64')
         self.dense_ly2 = tf.keras.layers.Dense(32, activation=tf.nn.relu, dtype='float64')
         self.dense_ly3 = tf.keras.layers.Dense(16, activation=tf.nn.relu, dtype='float64')
@@ -110,31 +106,36 @@ class GraphSage(tf.keras.Model):
     #         tf.TensorSpec(shape=(None, None), dtype=tf.float32),
     #         tf.TensorSpec(shape=(None, None), dtype=tf.float32),
     #     ])
-    def call(self, src_nodes, dstsrc2src_1, dstsrc2src_2, dstsrc2dst_1, dstsrc2dst_2, dif_mat_1, dif_mat_2):
+    def call(self, src_nodes0, dstsrc2src0_1, dstsrc2src0_2, dstsrc2dst0_1, dstsrc2dst0_2, dif_mat0_1,
+             dif_mat0_2, src_nodes1, dstsrc2src1_1, dstsrc2src1_2, dstsrc2dst1_1, dstsrc2dst1_2,
+             dif_mat1_1, dif_mat1_2):
         """
         前向传播
-        :param src_nodes: 这里省去了 tf.gather(self.features, nodes)这一步，直接将src结点的特征传进来即可。
-        :param dstsrc2src_1:
-        :param dstsrc2src_2:
-        :param dstsrc2dst_1:
-        :param dstsrc2dst_2:
-        :param dif_mat_1:
-        :param dif_mat_2:
-        :return:
         """
         # GraphSage
         # 先聚合第二层，再聚合第一层
-        x = self.input_layer(tf.squeeze(src_nodes))
-        x = self.agg_ly1(x, dstsrc2src_2, dstsrc2dst_2, dif_mat_2)
-        x = self.agg_ly2(x, dstsrc2src_1, dstsrc2dst_1, dif_mat_1)
+        src = self.input_layer(tf.squeeze(src_nodes0))
+        src = self.agg_ly1(src, dstsrc2src0_2, dstsrc2dst0_2, dif_mat0_2)
+        src = self.agg_ly2(src, dstsrc2src0_1, dstsrc2dst0_1, dif_mat0_1)
 
+        dest = self.input_layer(tf.squeeze(src_nodes1))
+        dest = self.agg_ly1(dest, dstsrc2src1_2, dstsrc2dst1_2, dif_mat1_2)
+        dest = self.agg_ly2(dest, dstsrc2src1_1, dstsrc2dst1_1, dif_mat1_1)
+
+        x = tf.concat([src, dest], 1)
         # # MLP
         embeddingABN = tf.math.l2_normalize(x, 1)
+        print(x)
         x = self.dense_ly1(embeddingABN)
+        print(x)
         x = self.dense_ly2(x)
+        print(x)
         x = self.dense_ly3(x)
+        print(x)
         x = self.dense_ly4(x)
+        print(x)
         x = self.dense_ly5(x)
+        print(x)
         return x
 
     # @tf.function(
@@ -149,24 +150,16 @@ class GraphSage(tf.keras.Model):
     #         tf.TensorSpec(shape=(None, None), dtype=tf.int64),
     #         tf.TensorSpec(shape=(None, None), dtype=tf.int64),
     #     ])
-    def train(self, src_nodes, dstsrc2src_1, dstsrc2src_2, dstsrc2dst_1, dstsrc2dst_2, dif_mat_1, dif_mat_2,
+    def train(self, src_nodes0, dstsrc2src0_1, dstsrc2src0_2, dstsrc2dst0_1, dstsrc2dst0_2, dif_mat0_1, dif_mat0_2,
+              src_nodes1, dstsrc2src1_1, dstsrc2src1_2, dstsrc2dst1_1, dstsrc2dst1_2, dif_mat1_1, dif_mat1_2,
               piece_length, piece_cost):
         """
         训练过程，这里要限定好batch_size，控制好维度
-        :param src_nodes: 这里省去了 tf.gather(self.features, nodes)这一步，直接将src结点的特征传进来即可。
-        :param dstsrc2src_1:
-        :param dstsrc2src_2:
-        :param dstsrc2dst_1:
-        :param dstsrc2dst_2:
-        :param dif_mat_1:
-        :param dif_mat_2:
-        :param piece_length: piece length
-        :param piece_cost: piece cost
-        :return: loss
         """
         with tf.GradientTape() as tape:
-            predict_value = self(src_nodes, dstsrc2src_1, dstsrc2src_2, dstsrc2dst_1, dstsrc2dst_2, dif_mat_1,
-                                 dif_mat_2)
+            predict_value = self(src_nodes0, dstsrc2src0_1, dstsrc2src0_2, dstsrc2dst0_1, dstsrc2dst0_2, dif_mat0_1,
+                                 dif_mat0_2, src_nodes1, dstsrc2src1_1, dstsrc2src1_2, dstsrc2dst1_1, dstsrc2dst1_2,
+                                 dif_mat1_1, dif_mat1_2)
             loss = self.compute_uloss(predict_value, piece_length, piece_cost)
         grads = tape.gradient(loss, self.trainable_weights)
         self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
@@ -181,63 +174,4 @@ class GraphSage(tf.keras.Model):
         :return:
         """
 
-        return tf.reduce_mean(tf.subtract(tf.divide(piece_length, piece_cost), predict_value))
-
-
-if __name__ == "__main__":
-    # 暂时先拟定IDC 是10维，然后location  2| 3 | 3 | = 2*3*3 共 18维，然后IP 是32维
-
-    idc_dim = 10
-    location_dim = 2 * 3 * 3
-    ip_dim = 32
-
-    INTERNAL_DIM = 128
-    SAMPLE_SIZES = [5, 5]
-    LEARNING_RATE = 0.001
-
-    node_num, feature, adj_lists, node_index = read_nt()
-
-    # 瞎弄几个带宽
-
-    src_nodes, dstsrc2srcs, dstsrc2dsts, dif_mats = build_batch_from_nodes([0, 1], adj_lists, SAMPLE_SIZES)
-
-    # ds: dst_nodes, src_nodes的并集, 其中dst_nodes为要计算传播矩阵的节点，src_nodes为dst_nodes邻居节点的综合。
-    # d2s: 在已排序的数组ds中查找src_nodes数组中的每个元素索引。
-    # d2d: 在已排序的数组ds中查找dst_nodes数组中的每个元素索引。
-    # dm: 均值聚合矩阵
-
-    # print('-------')
-    # print(src_nodes)
-    # print(dstsrc2srcs)
-    # print(dstsrc2dsts)
-    # print(dif_mats)
-
-    pieceLength = [15728640]
-    pieceCost = [52905000000]
-
-    graphsage = GraphSage(feature, INTERNAL_DIM, LEARNING_RATE)
-    loss = graphsage.train(tf.constant(src_nodes),
-                           tf.constant(dstsrc2srcs[0]), tf.constant(dstsrc2srcs[1]),
-                           tf.constant(dstsrc2dsts[0]), tf.constant(dstsrc2dsts[1]),
-                           tf.constant(dif_mats[0]), tf.constant(dif_mats[1]),
-                           tf.constant(pieceLength, dtype=tf.int64), tf.constant(pieceCost))
-
-    print("loss:", loss)
-
-    src_nodes, dstsrc2srcs, dstsrc2dsts, dif_mats = build_batch_from_nodes([1, 2], adj_lists, SAMPLE_SIZES)
-    predicted_value = graphsage.call(tf.constant(src_nodes),
-                                     tf.constant(dstsrc2srcs[0]), tf.constant(dstsrc2srcs[1]),
-                                     tf.constant(dstsrc2dsts[0]), tf.constant(dstsrc2dsts[1]),
-                                     tf.constant(dif_mats[0]), tf.constant(dif_mats[1]))
-    print("predicted_value:", predicted_value)
-
-
-    # print(graphsage.summary())
-    # tf.saved_model.save(
-    #     graphsage,
-    #     "keras/graphsage",
-    #     signatures={
-    #         "call": graphsage.call,
-    #         "train": graphsage.train,
-    #     },
-    # )
+        return tf.reduce_mean(tf.subtract(predict_value, tf.divide(piece_length, piece_cost)))
