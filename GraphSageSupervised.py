@@ -122,13 +122,14 @@ class GraphSage(tf.keras.Model):
         """
         # GraphSage
         # 先聚合第二层，再聚合第一层
+        # !!!!有bug
         src = self.input_layer(tf.squeeze(src_nodes0))
-        src = self.agg_ly1(src, dstsrc2src0_2, dstsrc2dst0_2, dif_mat0_2)
-        src = self.agg_ly2(src, dstsrc2src0_1, dstsrc2dst0_1, dif_mat0_1)
-
         dest = self.input_layer(tf.squeeze(src_nodes1))
-        dest = self.agg_ly1(dest, dstsrc2src1_2, dstsrc2dst1_2, dif_mat1_2)
-        dest = self.agg_ly2(dest, dstsrc2src1_1, dstsrc2dst1_1, dif_mat1_1)
+        src = self.agg_ly1(src, dstsrc2src0_2, dstsrc2dst0_2, dif_mat0_2, dest, dstsrc2src1_2, dstsrc2dst1_2,
+                           dif_mat1_2)
+        src = self.agg_ly2(src, dstsrc2src0_1, dstsrc2dst0_1, dif_mat0_1, dest, dstsrc2src1_1, dstsrc2dst1_1,
+                           dif_mat1_1)
+        dest = self.agg_ly2()
 
         x = tf.concat([src, dest], 1)
 
