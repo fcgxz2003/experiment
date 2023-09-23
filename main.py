@@ -10,7 +10,7 @@ if __name__ == "__main__":
     location_dim = 2 * 3 * 3
     ip_dim = 32
 
-    INTERNAL_DIM = 32
+    INTERNAL_DIM = 60
     SAMPLE_SIZES = [5, 5]
     LEARNING_RATE = 0.001
 
@@ -59,11 +59,11 @@ if __name__ == "__main__":
     print("predicted_value:", predicted_value)
 
     print(graphsage.summary())
-    # tf.saved_model.save(
-    #     graphsage,
-    #     "keras/graphsage",
-    #     signatures={
-    #         "call": graphsage.call,
-    #         "train": graphsage.train,
-    #     },
-    # )
+    tf.saved_model.save(
+        graphsage,
+        "keras/graphsage",
+        signatures={
+            "call": graphsage.call,
+            "train": graphsage.train,
+        },
+    )

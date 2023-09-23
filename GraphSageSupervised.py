@@ -32,31 +32,29 @@ class MeanAggregator(tf.keras.layers.Layer):
         # init_fn = tf.keras.initializers.GlorotUniform 指定变量的初始化方法为 Glorot均匀分布（GlorotUniform）。
         # trainable = True：指定变量是否可训练，这里设置为 True，表示权重变量 self.w 是需要在训练过程中更新的可训练变量。
         self.w = self.add_weight(name=kwargs["name"] + "_weight"
-                                 , shape=(src_dim * 2, dst_dim)
+                                 , shape=(src_dim * 2 * 2, dst_dim)
                                  , dtype=tf.float32
                                  , initializer=tf.keras.initializers.GlorotUniform
                                  , trainable=True
                                  )
 
-    def call(self, dstsrc_features, dstsrc2src, dstsrc2dst, dif_mat):
-        """
-        :param tensor dstsrc_features: the embedding from the previous layer
-        :param tensor dstsrc2dst: 1d index mapping (prepraed by minibatch generator)
-        :param tensor dstsrc2src: 1d index mapping (prepraed by minibatch generator)
-        :param tensor dif_mat: 2d diffusion matrix (prepraed by minibatch generator)
-        """
+    def call(self, source_dstsrc_features, source_dstsrc2src, source_dstsrc2dst, source_dif_mat,
+             destination_dstsrc_features, destination_dstsrc2src, destination_dstsrc2dst, destination_dif_mat,
+             ):
+        source_src_features = tf.gather(source_dstsrc_features, source_dstsrc2src)
+        source_dst_features = tf.gather(source_dstsrc_features, source_dstsrc2dst)
+        source_aggregated_features = tf.matmul(source_dif_mat, source_src_features)
+        source_concatenated_features = tf.concat([source_aggregated_features, source_dst_features], 1)
 
-        # 从dstsrc_features特征向量中，收集dstsrc2dst下标的内容，作为dst_features
-        dst_features = tf.gather(dstsrc_features, dstsrc2dst)
-        # 从dstsrc_features特征向量中，收集dstsrc2src下标的内容，作为src_features
-        src_features = tf.gather(dstsrc_features, dstsrc2src)
-        # 矩阵乘，乘上均值聚合矩阵。
-        aggregated_features = tf.matmul(dif_mat, src_features)
-        # 拼接aggregated_features 和 dst_features
-        concatenated_features = tf.concat([aggregated_features, dst_features], 1)
-        # 矩阵乘，乘上权重。
+        destination_src_features = tf.gather(destination_dstsrc_features, destination_dstsrc2src)
+        destination_dst_features = tf.gather(destination_dstsrc_features, destination_dstsrc2dst)
+        destination_aggregated_features = tf.matmul(destination_dif_mat, destination_src_features)
+        destination_concatenated_features = tf.concat([destination_aggregated_features, destination_dst_features], 1)
+
+        concatenated_features = tf.concat([source_concatenated_features, destination_concatenated_features], 1)
+        print(self.w.shape)
+        print(concatenated_features)
         x = tf.matmul(concatenated_features, self.w)
-        # self.activ_fn = tf.nn.relu if activ else tf.identity 最后走一个激活函数
         return self.activ_fn(x)
 
 
@@ -87,7 +85,7 @@ class GraphSage(tf.keras.Model):
                                       )
         # MLP
         self.dense_ly1 = tf.keras.layers.Dense(32, activation=tf.nn.relu, dtype='float32', name="dense_ly1")
-        self.dense_ly1.build(input_shape=(None, internal_dim * 2))
+        self.dense_ly1.build(input_shape=(None, internal_dim))
         self.dense_ly2 = tf.keras.layers.Dense(16, activation=tf.nn.relu, dtype='float32', name="dense_ly2")
         self.dense_ly2.build(input_shape=(None, 32))
         self.dense_ly3 = tf.keras.layers.Dense(8, activation=tf.nn.relu, dtype='float32', name="dense_ly3")
@@ -122,16 +120,14 @@ class GraphSage(tf.keras.Model):
         """
         # GraphSage
         # 先聚合第二层，再聚合第一层
-        # !!!!有bug
         src = self.input_layer(tf.squeeze(src_nodes0))
         dest = self.input_layer(tf.squeeze(src_nodes1))
-        src = self.agg_ly1(src, dstsrc2src0_2, dstsrc2dst0_2, dif_mat0_2, dest, dstsrc2src1_2, dstsrc2dst1_2,
-                           dif_mat1_2)
-        src = self.agg_ly2(src, dstsrc2src0_1, dstsrc2dst0_1, dif_mat0_1, dest, dstsrc2src1_1, dstsrc2dst1_1,
+        x = self.agg_ly1(src, dstsrc2src0_2, dstsrc2dst0_2, dif_mat0_2, dest, dstsrc2src1_2, dstsrc2dst1_2,
+                         dif_mat1_2)
+        print(x)
+        x = self.agg_ly2(x, dstsrc2src0_1, dstsrc2dst0_1, dif_mat0_1, x, dstsrc2src1_1, dstsrc2dst1_1,
                            dif_mat1_1)
-        dest = self.agg_ly2()
-
-        x = tf.concat([src, dest], 1)
+        print(x)
 
         # # MLP
         embeddingABN = tf.math.l2_normalize(x, 1)
