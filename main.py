@@ -1,7 +1,7 @@
 import tensorflow as tf
 from preprocess import read_nt
 from minibatch import build_batch_from_nodes
-from GraphSageSupervised import GraphSage
+from graphsage import GraphSage
 
 if __name__ == "__main__":
     # 暂时先拟定IDC 是10维，然后location  2| 3 | 3 | = 2*3*3 共 18维，然后IP 是32维
@@ -25,7 +25,7 @@ if __name__ == "__main__":
     pieceLength = [15728640*1000000]
     pieceCost = [52905000000]
 
-    graphsage = GraphSage(feature, INTERNAL_DIM, LEARNING_RATE)
+    graphsage = GraphSage(feature, INTERNAL_DIM, len(SAMPLE_SIZES))
 
     src_nodes0, dstsrc2srcs0, dstsrc2dsts0, dif_mats0 = build_batch_from_nodes([0], adj_lists, SAMPLE_SIZES)
     src_nodes1, dstsrc2srcs1, dstsrc2dsts1, dif_mats1 = build_batch_from_nodes([1], adj_lists, SAMPLE_SIZES)
@@ -58,7 +58,7 @@ if __name__ == "__main__":
                                      tf.constant(dif_mats1[0]), tf.constant(dif_mats1[1]))
     print("predicted_value:", predicted_value)
 
-    print(graphsage.summary())
+    # print(graphsage.summary())
     tf.saved_model.save(
         graphsage,
         "keras/graphsage",

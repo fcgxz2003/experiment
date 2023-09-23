@@ -39,7 +39,6 @@ def build_batch_from_nodes(nodes, neigh_dict, sample_sizes):
         dif_mats.append(dm)
 
     src_nodes = dst_nodes.pop()
-
     return src_nodes, dstsrc2srcs, dstsrc2dsts, dif_mats
 
 
@@ -47,7 +46,6 @@ def build_batch_from_nodes(nodes, neigh_dict, sample_sizes):
 #                       Private Functions                      #
 ################################################################
 
-# 注意力机制矩阵需要在这里修改
 def _compute_diffusion_matrix(dst_nodes, neigh_dict, sample_size, max_node_id):
     def sample(ns):
         return np.random.choice(ns, min(len(ns), sample_size), replace=False)
