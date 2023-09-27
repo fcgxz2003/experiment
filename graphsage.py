@@ -73,25 +73,25 @@ class GraphSage(tf.keras.Model):
         z = self.dense4(z)
         return self.dense(z)
 
-    @tf.function(
-        input_signature=[
-            tf.TensorSpec(shape=(None,), dtype=tf.int32),
-            tf.TensorSpec(shape=(None,), dtype=tf.int64),
-            tf.TensorSpec(shape=(None,), dtype=tf.int64),
-            tf.TensorSpec(shape=(None,), dtype=tf.int64),
-            tf.TensorSpec(shape=(None,), dtype=tf.int64),
-            tf.TensorSpec(shape=(None, None), dtype=tf.float32),
-            tf.TensorSpec(shape=(None, None), dtype=tf.float32),
-            tf.TensorSpec(shape=(None,), dtype=tf.int32),
-            tf.TensorSpec(shape=(None,), dtype=tf.int64),
-            tf.TensorSpec(shape=(None,), dtype=tf.int64),
-            tf.TensorSpec(shape=(None,), dtype=tf.int64),
-            tf.TensorSpec(shape=(None,), dtype=tf.int64),
-            tf.TensorSpec(shape=(None, None), dtype=tf.float32),
-            tf.TensorSpec(shape=(None, None), dtype=tf.float32),
-            tf.TensorSpec(shape=(None, ), dtype=tf.int64),
-            tf.TensorSpec(shape=(None, ), dtype=tf.int64),
-        ])
+    # @tf.function(
+    #     input_signature=[
+    #         tf.TensorSpec(shape=(None,), dtype=tf.int32),
+    #         tf.TensorSpec(shape=(None,), dtype=tf.int64),
+    #         tf.TensorSpec(shape=(None,), dtype=tf.int64),
+    #         tf.TensorSpec(shape=(None,), dtype=tf.int64),
+    #         tf.TensorSpec(shape=(None,), dtype=tf.int64),
+    #         tf.TensorSpec(shape=(None, None), dtype=tf.float32),
+    #         tf.TensorSpec(shape=(None, None), dtype=tf.float32),
+    #         tf.TensorSpec(shape=(None,), dtype=tf.int32),
+    #         tf.TensorSpec(shape=(None,), dtype=tf.int64),
+    #         tf.TensorSpec(shape=(None,), dtype=tf.int64),
+    #         tf.TensorSpec(shape=(None,), dtype=tf.int64),
+    #         tf.TensorSpec(shape=(None,), dtype=tf.int64),
+    #         tf.TensorSpec(shape=(None, None), dtype=tf.float32),
+    #         tf.TensorSpec(shape=(None, None), dtype=tf.float32),
+    #         tf.TensorSpec(shape=(None, ), dtype=tf.int64),
+    #         tf.TensorSpec(shape=(None, ), dtype=tf.int64),
+    #     ])
     def train(self, src_nodes0, dstsrc2src0_1, dstsrc2src0_2, dstsrc2dst0_1, dstsrc2dst0_2, dif_mat0_1, dif_mat0_2,
               src_nodes1, dstsrc2src1_1, dstsrc2src1_2, dstsrc2dst1_1, dstsrc2dst1_2, dif_mat1_1, dif_mat1_2,
               piece_length, piece_cost):

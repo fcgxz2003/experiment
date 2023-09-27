@@ -4,7 +4,7 @@ from minibatch import build_batch_from_nodes
 from graphsage import GraphSage
 
 if __name__ == "__main__":
-    # 暂时先拟定IDC 是10维，然后location  2| 3 | 3 | = 2*3*3 共 18维，然后IP 是32维
+    # 暂时先拟定IDC 是10维，然后location  4| 6 | 8 |  共 18维，然后IP 是32维
 
     idc_dim = 10
     location_dim = 2 * 3 * 3
@@ -61,9 +61,9 @@ if __name__ == "__main__":
     # print(graphsage.summary())
     tf.saved_model.save(
         graphsage,
-        "keras/graphsage",
+        "graphsage",
         signatures={
             "call": graphsage.call,
-            "train": graphsage.train,
+            # "train": graphsage.train,
         },
     )
