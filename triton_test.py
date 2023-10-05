@@ -96,5 +96,5 @@ def infer(triton_client):
 
 if __name__ == '__main__':
     # c = client_init()
-    c = httpclient.InferenceServerClient(url='210.30.96.107:30883')
+    c = httpclient.InferenceServerClient(url='210.30.96.102:31684')
     infer(c)
