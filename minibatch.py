@@ -48,7 +48,8 @@ def build_batch_from_nodes(nodes, neigh_dict, sample_sizes):
 
 def _compute_diffusion_matrix(dst_nodes, neigh_dict, sample_size, max_node_id):
     def sample(ns):
-        return np.random.choice(ns, min(len(ns), sample_size), replace=False)
+        return ns[0:min(len(ns), sample_size)]
+        # return np.random.choice(ns, min(len(ns), sample_size), replace=False)
 
     def vectorize(ns):
         v = np.zeros(max_node_id + 1, dtype=np.float32)
