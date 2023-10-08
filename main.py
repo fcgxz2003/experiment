@@ -79,7 +79,7 @@ if __name__ == "__main__":
                                      tf.constant(dif_mats1[0]), tf.constant(dif_mats1[1]))
     print("predicted_value:", predicted_value)
 
-    # # print(graphsage.summary())
+    # print(graphsage.summary())
     # tf.saved_model.save(
     #     graphsage,
     #     "graphsage",

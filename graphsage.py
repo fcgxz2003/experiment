@@ -30,27 +30,27 @@ class GraphSage(tf.keras.Model):
         self.dense = Dense(1, name="dense")
         self.dense.build(input_shape=(None, 8))
 
-        LEARNING_RATE = 0.5
+        LEARNING_RATE = 0.0001
         self.optimizer = tf.keras.optimizers.SGD(learning_rate=LEARNING_RATE)
 
-    # @tf.function(
-    #     input_signature=[
-    #         tf.TensorSpec(shape=(None,), dtype=tf.int32),
-    #         tf.TensorSpec(shape=(None,), dtype=tf.int64),
-    #         tf.TensorSpec(shape=(None,), dtype=tf.int64),
-    #         tf.TensorSpec(shape=(None,), dtype=tf.int64),
-    #         tf.TensorSpec(shape=(None,), dtype=tf.int64),
-    #         tf.TensorSpec(shape=(None, None), dtype=tf.float32),
-    #         tf.TensorSpec(shape=(None, None), dtype=tf.float32),
-    #         tf.TensorSpec(shape=(None,), dtype=tf.int32),
-    #         tf.TensorSpec(shape=(None,), dtype=tf.int64),
-    #         tf.TensorSpec(shape=(None,), dtype=tf.int64),
-    #         tf.TensorSpec(shape=(None,), dtype=tf.int64),
-    #         tf.TensorSpec(shape=(None,), dtype=tf.int64),
-    #         tf.TensorSpec(shape=(None, None), dtype=tf.float32),
-    #         tf.TensorSpec(shape=(None, None), dtype=tf.float32),
-    #
-    #     ])
+    @tf.function(
+        input_signature=[
+            tf.TensorSpec(shape=(None, None), dtype=tf.int32),
+            tf.TensorSpec(shape=(None,), dtype=tf.int32),
+            tf.TensorSpec(shape=(None,), dtype=tf.int32),
+            tf.TensorSpec(shape=(None,), dtype=tf.int32),
+            tf.TensorSpec(shape=(None,), dtype=tf.int32),
+            tf.TensorSpec(shape=(None, None), dtype=tf.float32),
+            tf.TensorSpec(shape=(None, None), dtype=tf.float32),
+            tf.TensorSpec(shape=(None, None), dtype=tf.int32),
+            tf.TensorSpec(shape=(None,), dtype=tf.int32),
+            tf.TensorSpec(shape=(None,), dtype=tf.int32),
+            tf.TensorSpec(shape=(None,), dtype=tf.int32),
+            tf.TensorSpec(shape=(None,), dtype=tf.int32),
+            tf.TensorSpec(shape=(None, None), dtype=tf.float32),
+            tf.TensorSpec(shape=(None, None), dtype=tf.float32),
+
+        ])
     def call(self,
              src_nodes0, dstsrc2src0_1, dstsrc2src0_2, dstsrc2dst0_1, dstsrc2dst0_2,
              dif_mat0_1, dif_mat0_2,
@@ -69,25 +69,24 @@ class GraphSage(tf.keras.Model):
         z = self.dense3(z)
         return self.dense(z)
 
-    # @tf.function(
-    #     input_signature=[
-    #         tf.TensorSpec(shape=(None,), dtype=tf.int32),
-    #         tf.TensorSpec(shape=(None,), dtype=tf.int64),
-    #         tf.TensorSpec(shape=(None,), dtype=tf.int64),
-    #         tf.TensorSpec(shape=(None,), dtype=tf.int64),
-    #         tf.TensorSpec(shape=(None,), dtype=tf.int64),
-    #         tf.TensorSpec(shape=(None, None), dtype=tf.float32),
-    #         tf.TensorSpec(shape=(None, None), dtype=tf.float32),
-    #         tf.TensorSpec(shape=(None,), dtype=tf.int32),
-    #         tf.TensorSpec(shape=(None,), dtype=tf.int64),
-    #         tf.TensorSpec(shape=(None,), dtype=tf.int64),
-    #         tf.TensorSpec(shape=(None,), dtype=tf.int64),
-    #         tf.TensorSpec(shape=(None,), dtype=tf.int64),
-    #         tf.TensorSpec(shape=(None, None), dtype=tf.float32),
-    #         tf.TensorSpec(shape=(None, None), dtype=tf.float32),
-    #         tf.TensorSpec(shape=(None, ), dtype=tf.int64),
-    #         tf.TensorSpec(shape=(None, ), dtype=tf.int64),
-    #     ])
+    @tf.function(
+        input_signature=[
+            tf.TensorSpec(shape=(None, None), dtype=tf.int32),
+            tf.TensorSpec(shape=(None,), dtype=tf.int32),
+            tf.TensorSpec(shape=(None,), dtype=tf.int32),
+            tf.TensorSpec(shape=(None,), dtype=tf.int32),
+            tf.TensorSpec(shape=(None,), dtype=tf.int32),
+            tf.TensorSpec(shape=(None, None), dtype=tf.float32),
+            tf.TensorSpec(shape=(None, None), dtype=tf.float32),
+            tf.TensorSpec(shape=(None, None), dtype=tf.int32),
+            tf.TensorSpec(shape=(None,), dtype=tf.int32),
+            tf.TensorSpec(shape=(None,), dtype=tf.int32),
+            tf.TensorSpec(shape=(None,), dtype=tf.int32),
+            tf.TensorSpec(shape=(None,), dtype=tf.int32),
+            tf.TensorSpec(shape=(None, None), dtype=tf.float32),
+            tf.TensorSpec(shape=(None, None), dtype=tf.float32),
+            tf.TensorSpec(shape=(None,), dtype=tf.float32),
+        ])
     def train(self, src_nodes0, dstsrc2src0_1, dstsrc2src0_2, dstsrc2dst0_1, dstsrc2dst0_2, dif_mat0_1, dif_mat0_2,
               src_nodes1, dstsrc2src1_1, dstsrc2src1_2, dstsrc2dst1_1, dstsrc2dst1_2, dif_mat1_1, dif_mat1_2,
               true_bandwidth):
@@ -116,7 +115,8 @@ class GraphSage(tf.keras.Model):
 
         print(true_bandwidth)
         print(predict_value)
-        return tf.subtract(true_bandwidth, predict_value[0][0])
+        return tf.abs(tf.subtract(true_bandwidth, predict_value[0][0]))
+
 
 ################################################################
 #                         Custom Layers                        #

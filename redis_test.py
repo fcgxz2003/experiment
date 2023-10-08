@@ -2,10 +2,8 @@ import redis
 import tensorflow as tf
 from graphsage import GraphSage
 import collections
-from multiprocessing import Process
 
 dataset = {}
-BatchSize = 2
 
 if __name__ == '__main__':
     rdb = redis.Redis(host='210.30.96.102', port=30205, db=3, password='dragonfly')
@@ -77,7 +75,7 @@ if __name__ == '__main__':
             # 判断是有有要训练的内容
             hash_flag = rdb.hget(key, "flag")
             true = rdb.hget(key, "true")
-            if true is not None and hash_flag is not None and 20 < eval(true) < 80:
+            if true is not None and hash_flag is not None and 20 < eval(true) < 100:
                 if dataset.get(key) is not None:
                     loss = graphsage.train(tf.constant(dataset[key].srcNodes1),
                                            tf.constant(dataset[key].dstsrc2srcs1_0),
