@@ -3,8 +3,9 @@ import tensorflow as tf
 from graphsage import GraphSage
 import collections
 
+
 if __name__ == '__main__':
-    rdb = redis.Redis(host='210.30.96.102', port=30205, db=3, password='dragonfly')
+    rdb = redis.Redis(host='210.30.96.102', port=30937, db=3, password='dragonfly')
 
     graphsage = tf.saved_model.load("graphsage")
 
@@ -60,6 +61,11 @@ if __name__ == '__main__':
                                        tf.constant(difMatrix2[0]), tf.constant(difMatrix2[1]),
                                        tf.constant([eval(true)]))
 
+                # 写到文件中，慢慢计算
+                with open("loss-true-predict.txt", "w") as fp:
+                    fp.writelines("{} {} {}".format(loss, eval(true), loss - eval(true)))
+
                 rdb.delete(key)
+                print("true", eval(true))
                 print("loss:", loss)
                 times = times + 1

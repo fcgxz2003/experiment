@@ -6,7 +6,7 @@ import collections
 dataset = {}
 
 if __name__ == '__main__':
-    rdb = redis.Redis(host='210.30.96.102', port=30205, db=3, password='dragonfly')
+    rdb = redis.Redis(host='210.30.96.102', port=30937, db=3, password='dragonfly')
 
     INTERNAL_DIM = 60
     SAMPLE_SIZES = [5, 5]
