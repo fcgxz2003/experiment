@@ -1,7 +1,5 @@
 import redis
 import tensorflow as tf
-from graphsage import GraphSage
-import collections
 
 
 if __name__ == '__main__':

@@ -1,14 +1,6 @@
 import redis
 import tensorflow as tf
-from graphsage import GraphSage
-import collections
-import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = '0' #use GPU with ID=0
-config = tf.ConfigProto()
-config.gpu_options.per_process_gpu_memory_fraction = 0.5 # maximun alloc gpu50% of MEM
-config.gpu_options.allow_growth = True #allocate dynamically
-sess = tf.Session(config = config)
 
 if __name__ == '__main__':
     rdb = redis.Redis(host='210.30.96.102', port=30937, db=3, password='dragonfly')
@@ -71,4 +63,4 @@ if __name__ == '__main__':
                     rdb.hset(key, "flag", 0)
                     print(str(p[0][0]))
 
-                    times = times +1
+                    times = times + 1
